@@ -1,0 +1,50 @@
+import pandas as pd
+import numpy as np
+from sklearn.cluster import KMeans
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+# Sample customer data
+data = {
+    'customer_id': range(1, 11),
+    'annual_spending': [3000, 4000, 3500, 2000, 10000, 12000, 9000, 1500, 1700, 11000],
+    'purchase_frequency': [12, 15, 14, 8, 35, 40, 30, 6, 7, 38],
+    'categories_bought': [3, 4, 3, 2, 5, 6, 5, 2, 2, 6]
+}
+
+# Convert to DataFrame
+df = pd.DataFrame(data)
+
+# Features for clustering
+X = df[['annual_spending', 'purchase_frequency', 'categories_bought']]
+
+# Determine optimal number of clusters using the elbow method
+inertia = []
+k_range = range(1, 10)
+for k in k_range:
+    kmeans = KMeans(n_clusters=k, random_state=42)
+    kmeans.fit(X)
+    inertia.append(kmeans.inertia_)
+    
+#Plot the elbow curve
+plt.plot(k_range, inertia, marker='o')
+plt.title('Elbow Method to Determine Optimal k')
+plt.xlabel('Number of clusters (k)')
+plt.ylabel('Inertia')
+plt.grid(True)
+plt.show()
+
+# Let's assume the elbow suggests k=3
+kmeans = KMeans(n_clusters=3, random_state=42)
+df['cluster'] = kmeans.fit_predict(X)
+
+# Visualize the clusters in 2D (reduce to 2D for plotting)
+sns.scatterplot(data=df, x='annual_spending', y='purchase_frequency', hue='cluster', palette='Set1')
+plt.title('Customer Segments')
+plt.xlabel('Annual Spending')
+plt.ylabel('Purchase Frequency')
+plt.grid(True)
+plt.show()
+
+# Optional: check cluster centers
+print("Cluster Centers:\n", kmeans.cluster_centers_)

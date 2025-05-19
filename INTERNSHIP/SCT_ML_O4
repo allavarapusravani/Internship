@@ -1,0 +1,65 @@
+import cv2
+import mediapipe as mp
+
+# Initialize MediaPipe hands and drawing utilities
+mp_hands = mp.solutions.hands
+mp_drawing = mp.solutions.drawing_utils
+
+# Initialize video capture
+cap = cv2.VideoCapture(0)
+
+# Hand detection model
+with mp_hands.Hands(min_detection_confidence=0.7, min_tracking_confidence=0.5) as hands:
+    while cap.isOpened():
+        success, image = cap.read()
+        if not success:
+            continue
+
+        # Flip image for natural (mirror) view
+        image = cv2.flip(image, 1)
+
+        # Convert the image to RGB
+        image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+        results = hands.process(image_rgb)
+
+        # Draw hand landmarks and count fingers
+        if results.multi_hand_landmarks:
+            for hand_landmarks in results.multi_hand_landmarks:
+                mp_drawing.draw_landmarks(
+                    image, hand_landmarks, mp_hands.HAND_CONNECTIONS)
+
+                # Finger counting logic
+                landmarks = hand_landmarks.landmark
+
+                fingers = []
+
+                # Thumb
+                if landmarks[mp_hands.HandLandmark.THUMB_TIP].x < landmarks[mp_hands.HandLandmark.THUMB_IP].x:
+                    fingers.append(1)
+                else:
+                    fingers.append(0)
+
+                # 4 fingers: index to pinky
+                for tip in [mp_hands.HandLandmark.INDEX_FINGER_TIP,
+                            mp_hands.HandLandmark.MIDDLE_FINGER_TIP,
+                            mp_hands.HandLandmark.RING_FINGER_TIP,
+                            mp_hands.HandLandmark.PINKY_TIP]:
+                    if landmarks[tip].y < landmarks[tip - 2].y:
+                        fingers.append(1)
+                    else:
+                        fingers.append(0)
+
+                total_fingers = sum(fingers)
+
+                # Display the finger count
+                cv2.putText(image, f'Fingers: {total_fingers}', (10, 50),
+                            cv2.FONT_HERSHEY_SIMPLEX, 1.5, (0, 255, 0), 3)
+
+        # Display the image
+        cv2.imshow('Hand Gesture Recognition', image)
+
+        if cv2.waitKey(5) & 0xFF == 27:  # Press 'Esc' to exit
+            break
+
+cap.release()
+cv2.destroyAllWindows()

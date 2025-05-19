@@ -1,0 +1,46 @@
+import tensorflow as tf
+import numpy as np
+from tensorflow.keras.applications import MobileNetV2
+from tensorflow.keras.applications.mobilenet_v2 import preprocess_input, decode_predictions
+from tensorflow.keras.preprocessing import image
+from PIL import Image
+import requests
+from io import BytesIO
+
+# Load pre-trained MobileNetV2 model
+model = MobileNetV2(weights="imagenet")
+
+# Load image from URL or file path
+def load_and_preprocess_image(path_or_url):
+    if path_or_url.startswith("http"):
+        response = requests.get(path_or_url)
+        img = Image.open(BytesIO(response.content))
+    else:
+        img = Image.open(path_or_url)
+
+    img = img.resize((224, 224))
+    x = image.img_to_array(img)
+    x = np.expand_dims(x, axis=0)
+    return preprocess_input(x)
+
+# Classify cat or dog
+def classify_cat_or_dog(path_or_url):
+    x = load_and_preprocess_image(path_or_url)
+    preds = model.predict(x)
+    decoded = decode_predictions(preds, top=3)[0]
+
+    print("Top predictions:")
+    for _, label, prob in decoded:
+        print(f"{label}: {prob*100:.2f}%")
+
+    # Simple classification based on label keywords
+    labels = [label.lower() for (_, label, _) in decoded]
+    if any("dog" in lbl for lbl in labels):
+        print("Result: 🐶 DOG")
+    elif any("cat" in lbl for lbl in labels):
+        print("Result: 🐱 CAT")
+    else:
+        print("Result: ❓ Not sure")
+
+# Or use a local file:
+classify_cat_or_dog("C:/Users/A.SRAVANI/OneDrive/Desktop/INTERNSHIP/cat 1.jpg")
